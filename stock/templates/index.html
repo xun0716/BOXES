@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>股票爬蟲系統</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #D3C0CD;
+            margin: 0;
+            padding: 0;
+        }
+
+        header {
+            background-color: #3D3A4B;
+            color: white;
+            padding: 30px;
+            text-align: center;
+            border-radius: 20px; /* 設定圓角 */
+            width: 80%; /* 調整 header 的寬度 */
+            height: 150px; /* 設定 header 的高度 */
+            margin: 20px auto; /* 自動水平居中 */
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2); /* 添加陰影效果 */
+        }
+        
+
+        .menu {
+            list-style-type: none;
+            padding-left: 0;
+            display: flex;
+            justify-content: center;
+            margin-top: 35px; /* 與上一行保持 15px 的距離 */
+        }
+
+        .menu li {
+            margin: 0 15px;
+        }
+
+        .menu a {
+            color: white;
+            text-decoration: none;
+            font-size: 18px;
+            padding: 10px 15px;
+            background-color: #555;
+            border-radius: 5px;
+            transition: background-color 0.3s;
+        }
+
+        .menu a:hover {
+            background-color: #777;
+        }
+
+        main {
+            padding: 20px;
+            text-align: center;
+        }
+
+        #result {
+            margin-top: 20px;
+            background-color: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 0 15px rgba(0, 0, 0, 0.1);
+            display: none;
+            text-align: left;
+        }
+
+        h2 {
+            color: #333;
+            font-size: 24px;
+            font-weight: bold;
+        }
+
+        pre {
+            background-color: #f9f9f9;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            max-height: 400px;
+            overflow-y: auto;
+            font-size: 14px;
+            line-height: 1.6;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+
+        /* 改善表格結果的視覺呈現 */
+        .table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+        }
+
+        .table th, .table td {
+            padding: 10px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+        }
+
+        .table th {
+            background-color: #f2f2f2;
+            font-weight: bold;
+        }
+
+        .table tr:hover {
+            background-color: #f9f9f9;
+        }
+        
+        /* 處理中文字樣的樣式 */
+        #loading {
+            color: #2196F3;
+            font-size: 18px;
+            display: none;
+            font-weight: bold; /* 設定文字為粗體 */
+        }
+        
+    </style>
+</head>
+<body>
+    <header>
+        <h1>股票爬蟲系統</h1>
+        <ul class="menu">
+            <li><a href="#" id="get-stock">查詢股價</a></li>
+            <li><a href="#" id="get-news">取得股票新聞</a></li>
+            <li><a href="#" id="get-finmind-data">查詢 FinMind 資料</a></li>
+        </ul>
+    </header>
+
+    <main>
+        <section id="content">
+            <p>請從上方選擇一個功能來開始操作。</p>
+        </section>
+        
+        <!-- 處理中的顯示 -->
+        <section id="loading">處理中...</section>
+
+        <!-- 結果區域 -->
+        <section id="result">
+            <h2>結果</h2>
+            <pre id="output"></pre>
+        </section>
+    </main>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const stockButton = document.getElementById('get-stock');
+            const newsButton = document.getElementById('get-news');
+            const finMindButton = document.getElementById('get-finmind-data');
+            const output = document.getElementById('output');
+            const resultSection = document.getElementById('result');
+            const loading = document.getElementById('loading'); // 取得 "處理中" 文字
+
+            function fetchData(url, data) {
+                loading.style.display = 'block';  // 顯示 "處理中..."
+                resultSection.style.display = 'none';  // 隱藏結果
+
+                fetch(url, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                    },
+                    body: new URLSearchParams(data)
+                })
+                .then(response => response.json())
+                .then(data => {
+                    loading.style.display = 'none';  // 隱藏 "處理中..."
+                    
+                    // 使用表格格式化股票資料
+                    if (Array.isArray(data) && data.length > 0 && typeof data[0] === 'object') {
+                        let tableHtml = '<table class="table">';
+                        tableHtml += '<tr>';
+                        Object.keys(data[0]).forEach(key => {
+                            tableHtml += `<th>${key}</th>`;
+                        });
+                        tableHtml += '</tr>';
+
+                        data.forEach(row => {
+                            tableHtml += '<tr>';
+                            Object.values(row).forEach(value => {
+                                tableHtml += `<td>${value}</td>`;
+                            });
+                            tableHtml += '</tr>';
+                        });
+
+                        tableHtml += '</table>';
+                        output.innerHTML = tableHtml;
+                    } else {
+                        // 若不是表格資料，顯示 JSON 格式的結果
+                        output.innerText = JSON.stringify(data, null, 2);
+                    }
+
+                    resultSection.style.display = 'block';  // 顯示結果
+                })
+                .catch(error => {
+                    loading.style.display = 'none';  // 隱藏 "處理中..."
+                    output.innerText = '發生錯誤：' + error;
+                    resultSection.style.display = 'block';
+                });
+            }
+
+            // 查詢股價
+            stockButton.addEventListener('click', () => {
+                const stockId = prompt("請輸入股票代號：");
+                if (stockId) {
+                    fetchData('/stock', { stock_id: stockId });
+                }
+            });
+
+            // 查詢新聞
+            newsButton.addEventListener('click', () => {
+                const stockId = prompt("請輸入股票代號：");
+                if (stockId) {
+                    fetchData('/news', { stock_id: stockId });
+                }
+            });
+
+            // 查詢 FinMind 資料
+            finMindButton.addEventListener('click', () => {
+                const stockId = prompt("請輸入股票代號：");
+                const startDate = prompt("請輸入起始日期 (YYYY-MM-DD)：");
+                const endDate = prompt("請輸入結束日期 (YYYY-MM-DD)：");
+
+                if (stockId && startDate && endDate) {
+                    fetchData('/finmind_data', { stock_id: stockId, start_date: startDate, end_date: endDate });
+                } else {
+                    alert("請輸入完整的股票代號和日期範圍！");
+                }
+            });
+        });
+    </script>
+</body>
+</html>
